@@ -22,7 +22,8 @@
         .dir-row { display: flex; gap: 10px; margin-bottom: 15px; }
         .dir-btn { flex: 1; padding: 10px; background: #333; text-align: center; border-radius: 8px; cursor: pointer; }
         .dir-btn.active { background: var(--primary); color: #000; }
-        #notif { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: var(--primary); padding: 15px; border-radius: 30px; display: none; z-index: 999; text-align:center; border: 1px solid var(--primary); }
+        #notif { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: var(--primary); padding: 15px; border-radius: 30px; display: none; z-index: 999; text-align:center; border: 1px solid var(--primary); font-weight: bold; }
+        
         /* Modais */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:none; align-items:flex-end; z-index:1000; }
         .modal-c { background:#222; width:100%; padding:20px; border-radius:20px 20px 0 0; }
@@ -65,15 +66,29 @@
                 <div id="btn-ida" class="dir-btn active" onclick="setDir('ida')">IDA (Fábrica)</div>
                 <div id="btn-volta" class="dir-btn" onclick="setDir('volta')">VOLTA (Casa)</div>
             </div>
-            <label>Data</label><input type="date" id="n-data">
-            <label>Origem</label><input id="n-origem" placeholder="Origem">
-            <label>Destino</label><input id="n-dest" placeholder="Destino" disabled value="Fábrica Jundiaí">
-            <label>Pontos de Passagem</label>
-            <input id="n-p1" placeholder="Ponto 1 (Obrigatório)">
+            
+            <label>Data *</label>
+            <input type="date" id="n-data">
+            
+            <label>Origem *</label>
+            <input id="n-origem" placeholder="De onde sai?">
+            
+            <label>Destino *</label>
+            <input id="n-dest" placeholder="Para onde vai?" disabled value="Fábrica Jundiaí">
+            
+            <label>Rota</label>
+            <input id="n-p1" placeholder="Ponto 1 (Obrigatório) *">
             <input id="n-p2" placeholder="Ponto 2 (Opcional)">
-            <label>Vagas</label>
-            <select id="n-vagas"><option value="1">1 Vaga</option><option value="2">2 Vagas</option><option value="3">3 Vagas</option><option value="4">4 Vagas</option></select>
-            <button id="btn-publicar" class="btn btn-p" onclick="salvarCarona()">Publicar</button>
+            
+            <label>Vagas Disponíveis</label>
+            <select id="n-vagas">
+                <option value="1">1 Vaga</option>
+                <option value="2">2 Vagas</option>
+                <option value="3">3 Vagas</option>
+                <option value="4">4 Vagas</option>
+            </select>
+            
+            <button id="btn-publicar" class="btn btn-p" onclick="salvarCarona()">Publicar Carona</button>
         </section>
 
         <section id="s-pass" class="screen">
@@ -91,7 +106,7 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // SUAS CHAVES DO CARONAAPP (Verifique se estão certas)
+        // --- COLE SUAS CHAVES DO FIREBASE AQUI ---
         const firebaseConfig = {
             apiKey: "AIzaSyCvszWzlqyo-s80VFOY3AVqUln8KMxJHDI",
             authDomain: "caronaapp-de78c.firebaseapp.com",
@@ -140,22 +155,48 @@
 
         window.logout = () => signOut(auth);
 
-        // MOTORISTA
+        // MOTORISTA: LÓGICA IDA/VOLTA
         window.setDir = (d) => {
             dir = d;
             document.getElementById('btn-ida').className = d==='ida'?'dir-btn active':'dir-btn';
             document.getElementById('btn-volta').className = d==='volta'?'dir-btn active':'dir-btn';
+            
+            const origem = document.getElementById('n-origem');
+            const dest = document.getElementById('n-dest');
+
             if(d==='ida') {
-                document.getElementById('n-origem').value=""; document.getElementById('n-origem').disabled=false;
-                document.getElementById('n-dest').value="Fábrica Jundiaí"; document.getElementById('n-dest').disabled=true;
+                origem.value = ""; origem.disabled = false; origem.placeholder = "De onde sai? (Ex: Centro)";
+                dest.value = "Fábrica Jundiaí"; dest.disabled = true;
             } else {
-                document.getElementById('n-origem').value="Fábrica Jundiaí"; document.getElementById('n-origem').disabled=true;
-                document.getElementById('n-dest').value=""; document.getElementById('n-dest').disabled=false;
+                origem.value = "Fábrica Jundiaí"; origem.disabled = true;
+                dest.value = ""; dest.disabled = false; dest.placeholder = "Para onde vai? (Ex: Centro)";
             }
         };
 
+        // SALVAR CARONA (COM VALIDAÇÃO CORRIGIDA)
         window.salvarCarona = async () => {
             if(!user) return;
+            
+            // Captura valores
+            const dataViagem = document.getElementById('n-data').value;
+            const origem = document.getElementById('n-origem').value;
+            const dest = document.getElementById('n-dest').value;
+            const p1 = document.getElementById('n-p1').value;
+            const p2 = document.getElementById('n-p2').value;
+            // Correção do BUG "0 Vagas": Garantir que é número
+            const vagas = parseInt(document.getElementById('n-vagas').value) || 1;
+
+            // Validação Obrigatória
+            if(!dataViagem) return msg("ERRO: Preencha a Data!");
+            if(!p1) return msg("ERRO: Ponto 1 é obrigatório!");
+
+            if(dir === 'ida') {
+                if(!origem || origem.trim() === "") return msg("ERRO: Preencha a Origem!");
+            } else {
+                // Volta
+                if(!dest || dest.trim() === "") return msg("ERRO: Preencha o Destino!");
+            }
+
             const btn = document.getElementById('btn-publicar');
             btn.innerText = "Salvando..."; btn.disabled = true;
 
@@ -164,28 +205,37 @@
                     uid: user.uid, 
                     email: user.email, 
                     tipo: dir,
-                    data: document.getElementById('n-data').value,
-                    origem: document.getElementById('n-origem').value,
-                    dest: document.getElementById('n-dest').value,
-                    p1: document.getElementById('n-p1').value,
-                    p2: document.getElementById('n-p2').value,
-                    vagas: parseInt(document.getElementById('n-vagas').value),
+                    data: dataViagem,
+                    origem: origem,
+                    dest: dest,
+                    p1: p1,
+                    p2: p2,
+                    vagas: vagas, // Agora salva o número correto
                     pass: [], 
                     status: 'ativa', 
                     created: new Date().toISOString()
                 });
-                msg("Carona Salva com Sucesso! ✅");
-                document.getElementById('n-p1').value = ""; // Limpa campo
-                nav('s-driver');
+                
+                msg("Carona Publicada! ✅");
+                
+                // Limpar campos
+                document.getElementById('n-p1').value = "";
+                document.getElementById('n-p2').value = "";
+                if(dir === 'ida') document.getElementById('n-origem').value = "";
+                if(dir === 'volta') document.getElementById('n-dest').value = "";
+
+                // Navegar de volta
+                nav('s-driver'); 
+
             } catch(err) {
                 console.error(err);
-                alert("ERRO CRÍTICO AO SALVAR:\n" + err.message + "\n\nVerifique se o domínio thiagogsx.github.io está autorizado no Firebase Authentication!");
+                alert("ERRO AO SALVAR:\n" + err.message);
             } finally {
-                btn.innerText = "Publicar"; btn.disabled = false;
+                btn.innerText = "Publicar Carona"; btn.disabled = false;
             }
         };
 
-        // LISTAGEM GERAL (Carrega TUDO e filtra no JS para evitar bugs de índice)
+        // LISTAGEM E BUSCA
         async function buscarTudo() {
             try {
                 const snap = await getDocs(collection(db, "caronas"));
@@ -195,17 +245,17 @@
                     data.id = d.id;
                     arr.push(data);
                 });
-                return arr.sort((a,b) => b.created.localeCompare(a.created)); // Ordena mais recente
+                return arr.sort((a,b) => b.created.localeCompare(a.created)); 
             } catch(err) {
                 console.error(err);
-                msg("Erro ao buscar dados. Verifique console.");
+                msg("Erro de conexão.");
                 return [];
             }
         }
 
         window.carregarDriver = async () => {
             const list = document.getElementById('list-driver');
-            list.innerHTML = "Buscando...";
+            list.innerHTML = "Atualizando...";
             const all = await buscarTudo();
             list.innerHTML = "";
             
@@ -218,7 +268,7 @@
                 list.innerHTML += `<div class="card" style="border-left-color:${color}">
                     <h3>${d.origem} > ${d.dest}</h3>
                     <p>${fmtData(d.data)} • ${d.status.toUpperCase()}</p>
-                    <p>Passageiros: ${d.pass ? d.pass.length : 0} / ${d.vagas + (d.pass ? d.pass.length : 0)}</p>
+                    <p>Vagas Ofertadas: ${d.vagas} | Ocupadas: ${d.pass ? d.pass.length : 0}</p>
                     ${d.status !== 'cancelada' ? `<button class="btn" style="background:#333;color:red; margin-top:5px;" onclick="openCancel('${d.id}','motorista')">Cancelar Oferta</button>` : ''}
                 </div>`;
             });
@@ -240,7 +290,12 @@
                 const souPassageiro = d.pass && d.pass.some(p => p.uid === user.uid);
                 
                 if(aba === 'busca') {
-                    // Filtra: Não sou motorista, Tem Vaga, Não está cancelada
+                    // LÓGICA DE VISIBILIDADE DO PASSAGEIRO
+                    // Se não sou motorista, se não está cancelada
+                    // E se TEM VAGAS (vagas totais > ocupadas)
+                    const ocupadas = d.pass ? d.pass.length : 0;
+                    const vagasRestantes = d.vagas; // As vagas no banco agora diminuem quando alguém aceita
+
                     if(!souMotorista && d.vagas > 0 && d.status !== 'cancelada' && !souPassageiro) {
                         count++;
                         const cor = d.tipo === 'ida' ? '#E1F000' : '#FF9100';
@@ -250,12 +305,11 @@
                                 <button class="btn btn-p" style="width:auto; padding:5px 15px;" onclick="openAceite('${d.id}')">ACEITAR</button>
                             </div>
                             <p style="color:white; font-size:1.1rem">${d.origem} > ${d.dest}</p>
-                            <p>${fmtData(d.data)} • Vagas: ${d.vagas}</p>
+                            <p>${fmtData(d.data)} • <strong>Vagas Restantes: ${vagasRestantes}</strong></p>
                             <small>Passa em: ${d.p1}</small>
                         </div>`;
                     }
                 } else {
-                    // Minhas Reservas
                     if(souPassageiro) {
                         count++;
                         const isCancel = d.status === 'cancelada';
@@ -271,7 +325,7 @@
             if(count === 0) list.innerHTML = "<p>Nada encontrado.</p>";
         };
 
-        // MODAL ACTIONS
+        // AÇÕES DO MODAL
         window.openAceite = (id) => { tempId = id; document.getElementById('m-aceite').style.display = 'flex'; };
         window.openCancel = (id, type) => { tempId = id; tempAction = type; document.getElementById('m-cancel').style.display = 'flex'; };
         window.fechar = () => { document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); };
@@ -280,11 +334,12 @@
             const btn = document.getElementById('btn-conf-aceite');
             btn.innerText = "..."; btn.disabled = true;
             try {
+                // REDUZ A VAGA DISPONÍVEL NO BANCO
                 await updateDoc(doc(db, "caronas", tempId), {
                     vagas: increment(-1),
                     pass: arrayUnion({ nome: document.getElementById('a-nome').value, uid: user.uid })
                 });
-                msg("Aceito! ✅"); fechar(); verPass('busca');
+                msg("Vaga Confirmada! ✅"); fechar(); verPass('busca');
             } catch(e) { alert("Erro: "+e.message); } finally { btn.innerText = "Confirmar"; btn.disabled = false; }
         };
 
@@ -297,9 +352,9 @@
                     await updateDoc(ref, { status: 'cancelada', motivo: document.getElementById('c-motivo').value });
                     nav('s-driver');
                 } else {
-                    // Solução simplificada: Apenas devolve a vaga visualmente
+                    // PASSAGEIRO CANCELANDO: Devolve a vaga (+1)
                     await updateDoc(ref, { vagas: increment(1) }); 
-                    msg("Cancelado"); verPass('minhas');
+                    msg("Vaga Cancelada."); verPass('minhas');
                 }
                 fechar();
             } catch(e) { alert("Erro: "+e.message); } finally { btn.innerText = "Confirmar"; btn.disabled = false; }
@@ -319,3 +374,4 @@
     </script>
 </body>
 </html>
+
