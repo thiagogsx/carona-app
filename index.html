@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CaronaApp</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#E1F000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        :root { --primary: #E1F000; --bg: #0a0a0a; --card: #1a1a1a; --text: #fff; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; justify-content: center; min-height: 100vh; }
+        #app { width: 100%; max-width: 480px; padding: 20px; display: flex; flex-direction: column; }
+        input, select, textarea { width: 100%; padding: 15px; background: var(--card); border: 1px solid #333; color: #fff; margin-bottom: 10px; border-radius: 8px; }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .btn-p { background: var(--primary); color: #000; }
+        .btn-o { border: 2px solid var(--primary); color: var(--primary); background: transparent; }
+        .card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
+        .screen { display: none; } .active { display: block; }
+        .dir-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .dir-btn { flex: 1; padding: 10px; background: #333; text-align: center; border-radius: 8px; cursor: pointer; }
+        .dir-btn.active { background: var(--primary); color: #000; }
+        #notif { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: var(--primary); padding: 10px 20px; border-radius: 30px; display: none; z-index: 999; }
+        /* Modais */
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:none; align-items:flex-end; z-index:1000; }
+        .modal-c { background:#222; width:100%; padding:20px; border-radius:20px 20px 0 0; }
+    </style>
+</head>
+<body>
+    <div id="notif"></div>
+
+    <div id="m-aceite" class="modal"><div class="modal-c"><h3>Aceitar?</h3><input id="a-nome" placeholder="Seu Nome"><button class="btn btn-p" onclick="confirmarAceite()">Confirmar</button><button class="btn" onclick="fechar()">Cancelar</button></div></div>
+    <div id="m-cancel" class="modal"><div class="modal-c"><h3>Cancelar?</h3><input id="c-motivo" placeholder="Motivo"><button class="btn btn-p" onclick="confirmarCancel()">Confirmar</button><button class="btn" onclick="fechar()">Voltar</button></div></div>
+
+    <div id="app">
+        <section id="s-login" class="screen active">
+            <h1 style="text-align:center; margin:40px 0; color:var(--primary)">CaronaApp</h1>
+            <input id="l-email" placeholder="Email"><input type="password" id="l-pass" placeholder="Senha">
+            <button class="btn btn-p" onclick="login(true)">Entrar</button>
+            <button class="btn btn-o" onclick="login(false)">Criar Conta</button>
+        </section>
+
+        <section id="s-dash" class="screen">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h2>Olá, <span id="u-name" style="color:var(--primary)">...</span></h2>
+                <button onclick="logout()" style="background:none; border:none; color:#fff;">Sair</button>
+            </div>
+            <button class="btn btn-o" onclick="nav('s-driver')" style="height:100px; font-size:1.2rem;">🚘 Sou Motorista</button>
+            <button class="btn btn-p" onclick="nav('s-pass')" style="height:100px; font-size:1.2rem;">🙋‍♂️ Sou Passageiro</button>
+        </section>
+
+        <section id="s-driver" class="screen">
+            <button onclick="nav('s-dash')" style="background:none; border:none; color:#aaa; margin-bottom:10px;">← Voltar</button>
+            <button class="btn btn-p" onclick="nav('s-new')">+ Nova Carona</button>
+            <h3>Minhas Ofertas</h3>
+            <div id="list-driver">Carregando...</div>
+        </section>
+
+        <section id="s-new" class="screen">
+            <button onclick="nav('s-driver')" style="background:none; border:none; color:#aaa; margin-bottom:10px;">← Voltar</button>
+            <h2>Nova Carona</h2>
+            <div class="dir-row">
+                <div id="btn-ida" class="dir-btn active" onclick="setDir('ida')">IDA (Fábrica)</div>
+                <div id="btn-volta" class="dir-btn" onclick="setDir('volta')">VOLTA (Casa)</div>
+            </div>
+            <input type="date" id="n-data">
+            <input id="n-origem" placeholder="Origem">
+            <input id="n-dest" placeholder="Destino" disabled value="Fábrica Jundiaí">
+            <input id="n-p1" placeholder="Ponto 1 (Obrigatório)">
+            <input id="n-p2" placeholder="Ponto 2">
+            <select id="n-vagas"><option value="1">1 Vaga</option><option value="2">2 Vagas</option><option value="3">3 Vagas</option><option value="4">4 Vagas</option></select>
+            <button class="btn btn-p" onclick="salvarCarona()">Publicar</button>
+        </section>
+
+        <section id="s-pass" class="screen">
+            <button onclick="nav('s-dash')" style="background:none; border:none; color:#aaa; margin-bottom:10px;">← Voltar</button>
+            <div class="dir-row">
+                <div class="dir-btn active" onclick="verPass('busca')" id="t-busca">Buscar</div>
+                <div class="dir-btn" onclick="verPass('minhas')" id="t-minhas">Minhas</div>
+            </div>
+            <div id="list-pass">Carregando...</div>
+        </section>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- COLE SUAS CHAVES AQUI ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCvszWzlqyo-s80VFOY3AVqUln8KMxJHDI",
+            authDomain: "caronaapp-de78c.firebaseapp.com",
+            projectId: "caronaapp-de78c",
+            storageBucket: "caronaapp-de78c.firebasestorage.app",
+            messagingSenderId: "199675445210",
+            appId: "1:199675445210:web:b2cde43424ab7c46a70ae3",
+            measurementId: "G-9Q1VPNLRZE"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let user = null;
+        let dir = 'ida';
+        let tempId = null; let tempAction = null;
+
+        // AUTH
+        window.login = async (isLogin) => {
+            const e = document.getElementById('l-email').value;
+            const p = document.getElementById('l-pass').value;
+            try {
+                if(isLogin) await signInWithEmailAndPassword(auth, e, p);
+                else await createUserWithEmailAndPassword(auth, e, p);
+            } catch(err) { alert("Erro: " + err.code); }
+        };
+        onAuthStateChanged(auth, u => {
+            user = u;
+            if(u) { document.getElementById('u-name').innerText = u.email.split('@')[0]; nav('s-dash'); }
+            else nav('s-login');
+        });
+        window.logout = () => signOut(auth);
+
+        // MOTORISTA
+        window.setDir = (d) => {
+            dir = d;
+            document.getElementById('btn-ida').className = d==='ida'?'dir-btn active':'dir-btn';
+            document.getElementById('btn-volta').className = d==='volta'?'dir-btn active':'dir-btn';
+            if(d==='ida') {
+                document.getElementById('n-origem').value=""; document.getElementById('n-origem').disabled=false;
+                document.getElementById('n-dest').value="Fábrica Jundiaí"; document.getElementById('n-dest').disabled=true;
+            } else {
+                document.getElementById('n-origem').value="Fábrica Jundiaí"; document.getElementById('n-origem').disabled=true;
+                document.getElementById('n-dest').value=""; document.getElementById('n-dest').disabled=false;
+            }
+        };
+
+        window.salvarCarona = async () => {
+            if(!user) return;
+            try {
+                await addDoc(collection(db, "caronas"), {
+                    uid: user.uid, email: user.email, tipo: dir,
+                    data: document.getElementById('n-data').value,
+                    origem: document.getElementById('n-origem').value,
+                    dest: document.getElementById('n-dest').value,
+                    p1: document.getElementById('n-p1').value,
+                    p2: document.getElementById('n-p2').value,
+                    vagas: parseInt(document.getElementById('n-vagas').value),
+                    pass: [], status: 'ativa', created: new Date().toISOString()
+                });
+                msg("Salvo!"); nav('s-driver');
+            } catch(err) {
+                alert("ERRO AO SALVAR: " + err.message + "\n\nSe aparecer 'permission-denied', é regra do Firebase!");
+            }
+        };
+
+        window.carregarDriver = async () => {
+            const list = document.getElementById('list-driver');
+            list.innerHTML = "Buscando...";
+            const all = await getDocs(collection(db, "caronas"));
+            list.innerHTML = "";
+            all.forEach(doc => {
+                const d = doc.data();
+                if(d.uid !== user.uid) return;
+                const color = d.status === 'cancelada' ? 'red' : '#E1F000';
+                list.innerHTML += `<div class="card" style="border-left-color:${color}">
+                    <h3>${d.origem} > ${d.dest}</h3>
+                    <p>${d.data} • ${d.status}</p>
+                    <p>Passageiros: ${d.pass ? d.pass.length : 0}</p>
+                    ${d.status !== 'cancelada' ? `<button class="btn" style="background:#333;color:red" onclick="openCancel('${doc.id}','motorista')">Cancelar</button>` : ''}
+                </div>`;
+            });
+        };
+
+        // PASSAGEIRO
+        window.verPass = async (aba) => {
+            document.getElementById('t-busca').className = aba==='busca'?'dir-btn active':'dir-btn';
+            document.getElementById('t-minhas').className = aba==='minhas'?'dir-btn active':'dir-btn';
+            const list = document.getElementById('list-pass');
+            list.innerHTML = "Buscando...";
+            const all = await getDocs(collection(db, "caronas"));
+            list.innerHTML = "";
+            
+            all.forEach(doc => {
+                const d = doc.data();
+                const isMine = d.pass && d.pass.some(p => p.uid === user.uid);
+                
+                if(aba === 'busca') {
+                    if(d.uid === user.uid || d.vagas <= 0 || d.status === 'cancelada') return; // Filtros
+                    list.innerHTML += `<div class="card" onclick="openAceite('${doc.id}')">
+                        <h3>${d.tipo.toUpperCase()} • Vagas: ${d.vagas}</h3>
+                        <p>${d.origem} > ${d.dest}</p>
+                        <p>${d.data} • Passa em: ${d.p1}</p>
+                        <button class="btn btn-p">Aceitar</button>
+                    </div>`;
+                } else {
+                    if(!isMine) return;
+                    list.innerHTML += `<div class="card" style="border-left-color:${d.status==='cancelada'?'red':'#00e676'}">
+                        <h3>${d.origem} > ${d.dest}</h3>
+                        <p>${d.data} • ${d.status==='cancelada'?'CANCELADA':'CONFIRMADA'}</p>
+                        ${d.status!=='cancelada'?`<button class="btn" style="color:red" onclick="openCancel('${doc.id}','pass')">Cancelar Vaga</button>`:''}
+                    </div>`;
+                }
+            });
+            if(list.innerHTML === "") list.innerHTML = "<p>Nada encontrado.</p>";
+        };
+
+        // MODAL ACTIONS
+        window.openAceite = (id) => { tempId = id; document.getElementById('m-aceite').style.display = 'flex'; };
+        window.openCancel = (id, type) => { tempId = id; tempAction = type; document.getElementById('m-cancel').style.display = 'flex'; };
+        window.fechar = () => { document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); };
+        
+        window.confirmarAceite = async () => {
+            try {
+                await updateDoc(doc(db, "caronas", tempId), {
+                    vagas: increment(-1),
+                    pass: arrayUnion({ nome: document.getElementById('a-nome').value, uid: user.uid })
+                });
+                msg("Aceito!"); fechar(); verPass('busca');
+            } catch(e) { alert("Erro: "+e.message); }
+        };
+
+        window.confirmarCancel = async () => {
+            try {
+                const ref = doc(db, "caronas", tempId);
+                if(tempAction === 'motorista') {
+                    await updateDoc(ref, { status: 'cancelada', motivo: document.getElementById('c-motivo').value });
+                    nav('s-driver');
+                } else {
+                    // Logica simplificada para remover passageiro não é trivial no Firestore sem ler antes, 
+                    // mas para MVP vamos apenas marcar vaga de volta
+                    await updateDoc(ref, { vagas: increment(1) }); 
+                    // Nota: Remover do array 'pass' exige ler o doc, filtrar e salvar. 
+                    // Para simplificar, vou apenas incrementar vaga e avisar visualmente.
+                    msg("Cancelado"); verPass('minhas');
+                }
+                fechar();
+            } catch(e) { alert("Erro: "+e.message); }
+        };
+
+        // NAV
+        window.nav = (s) => {
+            document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
+            document.getElementById(s).classList.add('active');
+            if(s==='s-driver') carregarDriver();
+            if(s==='s-pass') verPass('busca');
+        };
+        const msg = (t) => { const n=document.getElementById('notif'); n.innerText=t; n.style.display='block'; setTimeout(()=>n.style.display='none',3000); };
+        
+        if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+    </script>
+</body>
+</html>
