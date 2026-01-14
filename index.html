@@ -32,8 +32,8 @@
 <body>
     <div id="notif"></div>
 
-    <div id="m-aceite" class="modal"><div class="modal-c"><h3>Aceitar Carona?</h3><input id="a-nome" placeholder="Seu Nome"><button id="btn-conf-aceite" class="btn btn-p" onclick="confirmarAceite()">Confirmar</button><button class="btn" onclick="fechar()">Cancelar</button></div></div>
-    <div id="m-cancel" class="modal"><div class="modal-c"><h3>Cancelar?</h3><input id="c-motivo" placeholder="Motivo do cancelamento"><button id="btn-conf-cancel" class="btn btn-p" style="background:red; color:white" onclick="confirmarCancel()">Confirmar</button><button class="btn" onclick="fechar()">Voltar</button></div></div>
+    <div id="m-aceite" class="modal"><div class="modal-c"><h3>Aceitar Carona?</h3><input id="a-nome" placeholder="Seu Nome (Passageiro)"><button id="btn-conf-aceite" class="btn btn-p" onclick="confirmarAceite()">Confirmar</button><button class="btn" onclick="fechar()">Cancelar</button></div></div>
+    <div id="m-cancel" class="modal"><div class="modal-c"><h3>Cancelar?</h3><input id="c-motivo" placeholder="Motivo (Opcional)"><button id="btn-conf-cancel" class="btn btn-p" style="background:red; color:white" onclick="confirmarCancel()">Confirmar Cancelamento</button><button class="btn" onclick="fechar()">Voltar</button></div></div>
 
     <div id="app">
         <section id="s-login" class="screen active">
@@ -67,8 +67,11 @@
                 <div id="btn-volta" class="dir-btn" onclick="setDir('volta')">VOLTA (Casa)</div>
             </div>
             
+            <label>Seu Nome (Motorista) *</label>
+            <input id="n-nome" placeholder="Ex: Thiago Alves" required>
+
             <label>Data *</label>
-            <input type="date" id="n-data">
+            <input type="date" id="n-data" required>
             
             <label>Origem *</label>
             <input id="n-origem" placeholder="De onde sai?">
@@ -104,9 +107,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, arrayUnion, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, arrayUnion, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // --- COLE SUAS CHAVES DO FIREBASE AQUI ---
+        // --- SUAS CHAVES ---
         const firebaseConfig = {
             apiKey: "AIzaSyCvszWzlqyo-s80VFOY3AVqUln8KMxJHDI",
             authDomain: "caronaapp-de78c.firebaseapp.com",
@@ -131,20 +134,15 @@
             const p = document.getElementById('l-pass').value;
             const btn = isLogin ? document.getElementById('btn-login') : document.getElementById('btn-cad');
             const txt = btn.innerText;
-            
             if(!e || !p) return msg("Preencha email e senha");
             btn.innerText = "..."; btn.disabled = true;
-
             try {
                 if(isLogin) await signInWithEmailAndPassword(auth, e, p);
                 else await createUserWithEmailAndPassword(auth, e, p);
             } catch(err) { 
-                let m = err.code;
-                if(err.code === 'auth/invalid-credential') m = "Senha errada ou usuário não existe";
+                let m = err.code; if(err.code === 'auth/invalid-credential') m = "Senha errada";
                 msg("Erro: " + m); 
-            } finally {
-                btn.innerText = txt; btn.disabled = false;
-            }
+            } finally { btn.innerText = txt; btn.disabled = false; }
         };
 
         onAuthStateChanged(auth, u => {
@@ -152,105 +150,68 @@
             if(u) { document.getElementById('u-name').innerText = u.email.split('@')[0]; nav('s-dash'); }
             else nav('s-login');
         });
-
         window.logout = () => signOut(auth);
 
-        // MOTORISTA: LÓGICA IDA/VOLTA
+        // MOTORISTA: UI
         window.setDir = (d) => {
             dir = d;
             document.getElementById('btn-ida').className = d==='ida'?'dir-btn active':'dir-btn';
             document.getElementById('btn-volta').className = d==='volta'?'dir-btn active':'dir-btn';
-            
             const origem = document.getElementById('n-origem');
             const dest = document.getElementById('n-dest');
-
             if(d==='ida') {
-                origem.value = ""; origem.disabled = false; origem.placeholder = "De onde sai? (Ex: Centro)";
+                origem.value = ""; origem.disabled = false; origem.placeholder = "De onde sai?";
                 dest.value = "Fábrica Jundiaí"; dest.disabled = true;
             } else {
                 origem.value = "Fábrica Jundiaí"; origem.disabled = true;
-                dest.value = ""; dest.disabled = false; dest.placeholder = "Para onde vai? (Ex: Centro)";
+                dest.value = ""; dest.disabled = false; dest.placeholder = "Para onde vai?";
             }
         };
 
-        // SALVAR CARONA (COM VALIDAÇÃO CORRIGIDA)
+        // SALVAR CARONA
         window.salvarCarona = async () => {
             if(!user) return;
-            
-            // Captura valores
+            const nomeMoto = document.getElementById('n-nome').value;
             const dataViagem = document.getElementById('n-data').value;
             const origem = document.getElementById('n-origem').value;
             const dest = document.getElementById('n-dest').value;
             const p1 = document.getElementById('n-p1').value;
-            const p2 = document.getElementById('n-p2').value;
-            // Correção do BUG "0 Vagas": Garantir que é número
             const vagas = parseInt(document.getElementById('n-vagas').value) || 1;
 
-            // Validação Obrigatória
-            if(!dataViagem) return msg("ERRO: Preencha a Data!");
-            if(!p1) return msg("ERRO: Ponto 1 é obrigatório!");
-
-            if(dir === 'ida') {
-                if(!origem || origem.trim() === "") return msg("ERRO: Preencha a Origem!");
-            } else {
-                // Volta
-                if(!dest || dest.trim() === "") return msg("ERRO: Preencha o Destino!");
-            }
+            if(!nomeMoto) return alert("Por favor, digite seu nome (Motorista).");
+            if(!dataViagem) return alert("A data é obrigatória.");
+            if(!p1) return alert("O Ponto 1 é obrigatório.");
+            if(dir === 'ida' && (!origem || origem.trim() === "")) return alert("Preencha a Origem.");
+            if(dir === 'volta' && (!dest || dest.trim() === "")) return alert("Preencha o Destino.");
 
             const btn = document.getElementById('btn-publicar');
             btn.innerText = "Salvando..."; btn.disabled = true;
 
             try {
                 await addDoc(collection(db, "caronas"), {
-                    uid: user.uid, 
-                    email: user.email, 
-                    tipo: dir,
-                    data: dataViagem,
-                    origem: origem,
-                    dest: dest,
-                    p1: p1,
-                    p2: p2,
-                    vagas: vagas, // Agora salva o número correto
-                    pass: [], 
-                    status: 'ativa', 
+                    uid: user.uid, email: user.email, motorista: nomeMoto, // NOVO CAMPO
+                    tipo: dir, data: dataViagem, origem: origem, dest: dest,
+                    p1: p1, p2: document.getElementById('n-p2').value,
+                    vagas: vagas, pass: [], status: 'ativa', 
                     created: new Date().toISOString()
                 });
-                
                 msg("Carona Publicada! ✅");
-                
-                // Limpar campos
-                document.getElementById('n-p1').value = "";
-                document.getElementById('n-p2').value = "";
+                document.getElementById('n-p1').value = ""; document.getElementById('n-p2').value = "";
                 if(dir === 'ida') document.getElementById('n-origem').value = "";
                 if(dir === 'volta') document.getElementById('n-dest').value = "";
-
-                // Navegar de volta
                 nav('s-driver'); 
-
-            } catch(err) {
-                console.error(err);
-                alert("ERRO AO SALVAR:\n" + err.message);
-            } finally {
-                btn.innerText = "Publicar Carona"; btn.disabled = false;
-            }
+            } catch(err) { alert("Erro ao salvar: " + err.message); } 
+            finally { btn.innerText = "Publicar Carona"; btn.disabled = false; }
         };
 
-        // LISTAGEM E BUSCA
+        // BUSCA
         async function buscarTudo() {
             try {
                 const snap = await getDocs(collection(db, "caronas"));
                 const arr = [];
-                snap.forEach(d => {
-                    const data = d.data();
-                    data.id = d.id;
-                    arr.push(data);
-                });
+                snap.forEach(d => { const data = d.data(); data.id = d.id; arr.push(data); });
                 return arr.sort((a,b) => b.created.localeCompare(a.created)); 
-            } catch(err) {
-                console.error(err);
-                msg("Erro de conexão.");
-                return [];
-            }
+            } catch(err) { return []; }
         }
 
         window.carregarDriver = async () => {
@@ -258,11 +219,8 @@
             list.innerHTML = "Atualizando...";
             const all = await buscarTudo();
             list.innerHTML = "";
-            
             const minhas = all.filter(d => d.uid === user.uid);
-
             if(minhas.length === 0) { list.innerHTML = "<p>Nenhuma oferta criada por você.</p>"; return; }
-
             minhas.forEach(d => {
                 const color = d.status === 'cancelada' ? 'red' : '#E1F000';
                 list.innerHTML += `<div class="card" style="border-left-color:${color}">
@@ -277,12 +235,10 @@
         window.verPass = async (aba) => {
             document.getElementById('t-busca').className = aba==='busca'?'dir-btn active':'dir-btn';
             document.getElementById('t-minhas').className = aba==='minhas'?'dir-btn active':'dir-btn';
-            
             const list = document.getElementById('list-pass');
             list.innerHTML = "Buscando...";
             const all = await buscarTudo();
             list.innerHTML = "";
-            
             let count = 0;
 
             all.forEach(d => {
@@ -290,12 +246,6 @@
                 const souPassageiro = d.pass && d.pass.some(p => p.uid === user.uid);
                 
                 if(aba === 'busca') {
-                    // LÓGICA DE VISIBILIDADE DO PASSAGEIRO
-                    // Se não sou motorista, se não está cancelada
-                    // E se TEM VAGAS (vagas totais > ocupadas)
-                    const ocupadas = d.pass ? d.pass.length : 0;
-                    const vagasRestantes = d.vagas; // As vagas no banco agora diminuem quando alguém aceita
-
                     if(!souMotorista && d.vagas > 0 && d.status !== 'cancelada' && !souPassageiro) {
                         count++;
                         const cor = d.tipo === 'ida' ? '#E1F000' : '#FF9100';
@@ -305,7 +255,8 @@
                                 <button class="btn btn-p" style="width:auto; padding:5px 15px;" onclick="openAceite('${d.id}')">ACEITAR</button>
                             </div>
                             <p style="color:white; font-size:1.1rem">${d.origem} > ${d.dest}</p>
-                            <p>${fmtData(d.data)} • <strong>Vagas Restantes: ${vagasRestantes}</strong></p>
+                            <p><strong>Motorista: ${d.motorista || 'Anônimo'}</strong></p>
+                            <p>${fmtData(d.data)} • <strong>Vagas: ${d.vagas}</strong></p>
                             <small>Passa em: ${d.p1}</small>
                         </div>`;
                     }
@@ -315,13 +266,13 @@
                         const isCancel = d.status === 'cancelada';
                         list.innerHTML += `<div class="card" style="border-left-color:${isCancel?'red':'#00e676'}">
                             <h3>${d.origem} > ${d.dest}</h3>
+                            <p><strong>Motorista: ${d.motorista || 'Anônimo'}</strong></p>
                             <p>${fmtData(d.data)} • ${isCancel?'CANCELADA P/ MOTORISTA':'CONFIRMADA'}</p>
                             ${!isCancel?`<button class="btn" style="color:red; background:#222; margin-top:5px" onclick="openCancel('${d.id}','pass')">Cancelar Vaga</button>`:''}
                         </div>`;
                     }
                 }
             });
-
             if(count === 0) list.innerHTML = "<p>Nada encontrado.</p>";
         };
 
@@ -332,17 +283,20 @@
         
         window.confirmarAceite = async () => {
             const btn = document.getElementById('btn-conf-aceite');
+            const nomePass = document.getElementById('a-nome').value;
+            if(!nomePass) return alert("Digite seu nome.");
+            
             btn.innerText = "..."; btn.disabled = true;
             try {
-                // REDUZ A VAGA DISPONÍVEL NO BANCO
                 await updateDoc(doc(db, "caronas", tempId), {
                     vagas: increment(-1),
-                    pass: arrayUnion({ nome: document.getElementById('a-nome').value, uid: user.uid })
+                    pass: arrayUnion({ nome: nomePass, uid: user.uid })
                 });
                 msg("Vaga Confirmada! ✅"); fechar(); verPass('busca');
             } catch(e) { alert("Erro: "+e.message); } finally { btn.innerText = "Confirmar"; btn.disabled = false; }
         };
 
+        // CANCELAMENTO CORRIGIDO (APAGA O PASSAGEIRO DA LISTA)
         window.confirmarCancel = async () => {
             const btn = document.getElementById('btn-conf-cancel');
             btn.innerText = "..."; btn.disabled = true;
@@ -352,15 +306,24 @@
                     await updateDoc(ref, { status: 'cancelada', motivo: document.getElementById('c-motivo').value });
                     nav('s-driver');
                 } else {
-                    // PASSAGEIRO CANCELANDO: Devolve a vaga (+1)
-                    await updateDoc(ref, { vagas: increment(1) }); 
-                    msg("Vaga Cancelada."); verPass('minhas');
+                    // LÓGICA DO PASSAGEIRO: Ler banco -> Filtrar lista -> Atualizar
+                    const docSnap = await getDoc(ref);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        // Cria nova lista SEM o usuário atual
+                        const novaLista = data.pass.filter(p => p.uid !== user.uid);
+                        
+                        await updateDoc(ref, {
+                            pass: novaLista, // Salva lista atualizada
+                            vagas: increment(1) // Devolve a vaga
+                        });
+                        msg("Vaga Cancelada."); verPass('minhas');
+                    }
                 }
                 fechar();
             } catch(e) { alert("Erro: "+e.message); } finally { btn.innerText = "Confirmar"; btn.disabled = false; }
         };
 
-        // UTILS
         function fmtData(d) { return d ? d.split('-').reverse().join('/') : '--/--'; }
         window.nav = (s) => {
             document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
@@ -369,7 +332,6 @@
             if(s==='s-pass') verPass('busca');
         };
         const msg = (t) => { const n=document.getElementById('notif'); n.innerText=t; n.style.display='block'; setTimeout(()=>n.style.display='none',3000); };
-        
         if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
     </script>
 </body>
