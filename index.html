@@ -12,27 +12,57 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
         body { background: var(--bg); color: var(--text); display: flex; justify-content: center; min-height: 100vh; }
         #app { width: 100%; max-width: 480px; padding: 20px; display: flex; flex-direction: column; }
-        input, select, textarea { width: 100%; padding: 15px; background: var(--card); border: 1px solid #333; color: #fff; margin-bottom: 10px; border-radius: 8px; }
-        .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.2s; }
+        
+        /* FONTE AUMENTADA PARA CELULAR */
+        input, select, textarea { 
+            width: 100%; 
+            padding: 15px; 
+            background: var(--card); 
+            border: 1px solid #333; 
+            color: #fff; 
+            margin-bottom: 15px; /* Mais espaço entre campos */
+            border-radius: 8px; 
+            font-size: 18px; /* Fonte bem legível */
+        }
+        
+        label { display:block; margin-bottom:5px; color:#aaa; font-size: 14px; }
+
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.2s; font-size: 16px; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-p { background: var(--primary); color: #000; }
         .btn-o { border: 2px solid var(--primary); color: var(--primary); background: transparent; }
         .card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
         .screen { display: none; animation: fade 0.3s; } .active { display: block; } @keyframes fade {from{opacity:0}to{opacity:1}}
         .dir-row { display: flex; gap: 10px; margin-bottom: 15px; }
-        .dir-btn { flex: 1; padding: 10px; background: #333; text-align: center; border-radius: 8px; cursor: pointer; }
+        .dir-btn { flex: 1; padding: 15px; background: #333; text-align: center; border-radius: 8px; cursor: pointer; font-size: 16px; }
         .dir-btn.active { background: var(--primary); color: #000; }
-        #notif { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: var(--primary); padding: 15px; border-radius: 30px; display: none; z-index: 999; text-align:center; border: 1px solid var(--primary); font-weight: bold; }
+        #notif { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: var(--primary); padding: 15px; border-radius: 30px; display: none; z-index: 999; text-align:center; border: 1px solid var(--primary); font-weight: bold; width: 90%; }
         
         /* Modais */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:none; align-items:flex-end; z-index:1000; }
-        .modal-c { background:#222; width:100%; padding:20px; border-radius:20px 20px 0 0; }
+        .modal-c { background:#222; width:100%; padding:25px; border-radius:20px 20px 0 0; }
+        .pass-item { background: #111; padding: 10px; margin-top: 5px; border-radius: 5px; border-left: 2px solid #555; }
     </style>
 </head>
 <body>
     <div id="notif"></div>
 
-    <div id="m-aceite" class="modal"><div class="modal-c"><h3>Aceitar Carona?</h3><input id="a-nome" placeholder="Seu Nome (Passageiro)"><button id="btn-conf-aceite" class="btn btn-p" onclick="confirmarAceite()">Confirmar</button><button class="btn" onclick="fechar()">Cancelar</button></div></div>
+    <div id="m-aceite" class="modal">
+        <div class="modal-c">
+            <h3>Aceitar Carona?</h3>
+            <p style="color:#aaa; margin-bottom:15px">Confirme seus dados para o motorista.</p>
+            
+            <label>Seu Nome (Obrigatório)</label>
+            <input id="a-nome" placeholder="Ex: Ana Souza">
+            
+            <label>Observação (Opcional)</label>
+            <input id="a-obs" placeholder="Ex: Estou com uma mala pequena">
+            
+            <button id="btn-conf-aceite" class="btn btn-p" onclick="confirmarAceite()">Confirmar Vaga</button>
+            <button class="btn" onclick="fechar()">Cancelar</button>
+        </div>
+    </div>
+
     <div id="m-cancel" class="modal"><div class="modal-c"><h3>Cancelar?</h3><input id="c-motivo" placeholder="Motivo (Opcional)"><button id="btn-conf-cancel" class="btn btn-p" style="background:red; color:white" onclick="confirmarCancel()">Confirmar Cancelamento</button><button class="btn" onclick="fechar()">Voltar</button></div></div>
 
     <div id="app">
@@ -189,7 +219,7 @@
 
             try {
                 await addDoc(collection(db, "caronas"), {
-                    uid: user.uid, email: user.email, motorista: nomeMoto, // NOVO CAMPO
+                    uid: user.uid, email: user.email, motorista: nomeMoto,
                     tipo: dir, data: dataViagem, origem: origem, dest: dest,
                     p1: p1, p2: document.getElementById('n-p2').value,
                     vagas: vagas, pass: [], status: 'ativa', 
@@ -223,11 +253,23 @@
             if(minhas.length === 0) { list.innerHTML = "<p>Nenhuma oferta criada por você.</p>"; return; }
             minhas.forEach(d => {
                 const color = d.status === 'cancelada' ? 'red' : '#E1F000';
+                
+                // GERA LISTA DE PASSAGEIROS COM OBS
+                let listaPass = "";
+                if(d.pass && d.pass.length > 0) {
+                    listaPass = '<div style="background:#222; padding:10px; margin-top:10px; border-radius:8px"><small>Passageiros:</small>';
+                    d.pass.forEach(p => {
+                        listaPass += `<div class="pass-item">👤 ${p.nome} <br><em style="color:#888; font-size:14px">${p.obs || 'Sem observação'}</em></div>`;
+                    });
+                    listaPass += '</div>';
+                }
+
                 list.innerHTML += `<div class="card" style="border-left-color:${color}">
                     <h3>${d.origem} > ${d.dest}</h3>
                     <p>${fmtData(d.data)} • ${d.status.toUpperCase()}</p>
-                    <p>Vagas Ofertadas: ${d.vagas} | Ocupadas: ${d.pass ? d.pass.length : 0}</p>
-                    ${d.status !== 'cancelada' ? `<button class="btn" style="background:#333;color:red; margin-top:5px;" onclick="openCancel('${d.id}','motorista')">Cancelar Oferta</button>` : ''}
+                    <p>Vagas: ${d.vagas} Livres</p>
+                    ${listaPass}
+                    ${d.status !== 'cancelada' ? `<button class="btn" style="background:#333;color:red; margin-top:10px;" onclick="openCancel('${d.id}','motorista')">Cancelar Oferta</button>` : ''}
                 </div>`;
             });
         };
@@ -254,7 +296,7 @@
                                 <h3>${d.tipo.toUpperCase()}</h3>
                                 <button class="btn btn-p" style="width:auto; padding:5px 15px;" onclick="openAceite('${d.id}')">ACEITAR</button>
                             </div>
-                            <p style="color:white; font-size:1.1rem">${d.origem} > ${d.dest}</p>
+                            <p style="color:white; font-size:18px">${d.origem} > ${d.dest}</p>
                             <p><strong>Motorista: ${d.motorista || 'Anônimo'}</strong></p>
                             <p>${fmtData(d.data)} • <strong>Vagas: ${d.vagas}</strong></p>
                             <small>Passa em: ${d.p1}</small>
@@ -281,22 +323,25 @@
         window.openCancel = (id, type) => { tempId = id; tempAction = type; document.getElementById('m-cancel').style.display = 'flex'; };
         window.fechar = () => { document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); };
         
+        // ACEITAR CARONA COM OBSERVAÇÃO
         window.confirmarAceite = async () => {
             const btn = document.getElementById('btn-conf-aceite');
             const nomePass = document.getElementById('a-nome').value;
-            if(!nomePass) return alert("Digite seu nome.");
+            const obsPass = document.getElementById('a-obs').value; // PEGA A OBS
+            
+            if(!nomePass) return alert("Por favor, digite seu Nome para que o motorista saiba quem é.");
             
             btn.innerText = "..."; btn.disabled = true;
             try {
                 await updateDoc(doc(db, "caronas", tempId), {
                     vagas: increment(-1),
-                    pass: arrayUnion({ nome: nomePass, uid: user.uid })
+                    pass: arrayUnion({ nome: nomePass, obs: obsPass, uid: user.uid }) // SALVA A OBS
                 });
                 msg("Vaga Confirmada! ✅"); fechar(); verPass('busca');
-            } catch(e) { alert("Erro: "+e.message); } finally { btn.innerText = "Confirmar"; btn.disabled = false; }
+            } catch(e) { alert("Erro: "+e.message); } finally { btn.innerText = "Confirmar Vaga"; btn.disabled = false; }
         };
 
-        // CANCELAMENTO CORRIGIDO (APAGA O PASSAGEIRO DA LISTA)
+        // CANCELAR
         window.confirmarCancel = async () => {
             const btn = document.getElementById('btn-conf-cancel');
             btn.innerText = "..."; btn.disabled = true;
@@ -306,17 +351,11 @@
                     await updateDoc(ref, { status: 'cancelada', motivo: document.getElementById('c-motivo').value });
                     nav('s-driver');
                 } else {
-                    // LÓGICA DO PASSAGEIRO: Ler banco -> Filtrar lista -> Atualizar
                     const docSnap = await getDoc(ref);
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        // Cria nova lista SEM o usuário atual
                         const novaLista = data.pass.filter(p => p.uid !== user.uid);
-                        
-                        await updateDoc(ref, {
-                            pass: novaLista, // Salva lista atualizada
-                            vagas: increment(1) // Devolve a vaga
-                        });
+                        await updateDoc(ref, { pass: novaLista, vagas: increment(1) });
                         msg("Vaga Cancelada."); verPass('minhas');
                     }
                 }
