@@ -1,4 +1,4 @@
-const CACHE_NAME = 'carona-github-v3'; // Mudei para V3 para forçar atualização
+const CACHE_NAME = 'carona-github-v9'; // Atualizado para v9
 const urlsToCache = [
   './',
   './index.html',
@@ -6,7 +6,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Força o novo SW a assumir imediatamente
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
