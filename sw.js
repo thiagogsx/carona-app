@@ -1,4 +1,4 @@
-const CACHE_NAME = 'carona-github-v9'; // Atualizado para v9
+const CACHE_NAME = 'carona-github-v10'; // Atualizado para v10 (Obrigatório para ver as mudanças)
 const urlsToCache = [
   './',
   './index.html',
@@ -6,7 +6,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting();
+  self.skipWaiting(); // Força a atualização imediata
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
