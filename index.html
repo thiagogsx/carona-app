@@ -18,7 +18,7 @@
             width: 100%; padding: 15px; background: var(--card); border: 1px solid #333; 
             color: #fff; margin-bottom: 15px; border-radius: 8px; font-size: 18px; 
         }
-        label { display:block; margin-bottom:8px; color:#aaa; font-size: 16px; }
+        label { display:block; margin-bottom:8px; color:#aaa; font-size: 16px; margin-top: 5px; }
 
         /* BOTÕES */
         .btn { width: 100%; padding: 16px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 12px; transition: 0.2s; font-size: 18px; }
@@ -44,6 +44,11 @@
 
         .label-trajeto { color: #aaa; font-size: 12px; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 4px; letter-spacing: 1px; }
         .texto-trajeto { margin: 0 0 10px 0; font-size: 20px; color: white; }
+
+        /* Estilo da Rota com Horário */
+        .rota-list { list-style: none; padding: 0; margin: 10px 0; }
+        .rota-item { color: #ddd; font-size: 15px; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+        .rota-time { color: var(--primary); font-weight: bold; background: #333; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -53,16 +58,12 @@
         <div class="modal-c">
             <h3>Aceitar Carona?</h3>
             <p style="color:#aaa; margin-bottom:15px; font-size:16px;">Informe seus dados de contato.</p>
-            
             <label>Seu Nome *</label>
             <input id="a-nome" placeholder="Ex: Ana Souza">
-            
             <label>Seu WhatsApp/Celular *</label>
             <input id="a-tel" type="tel" placeholder="(11) 99999-9999">
-            
             <label>Observação (Opcional)</label>
             <input id="a-obs" placeholder="Ex: Mala pequena">
-            
             <button id="btn-conf-aceite" class="btn btn-p" onclick="confirmarAceite()">Confirmar Vaga</button>
             <button class="btn" onclick="fechar()" style="background:#333; color:#fff">Cancelar</button>
         </div>
@@ -124,9 +125,28 @@
             <label>Destino *</label>
             <input id="n-dest" placeholder="Para onde vai?" disabled value="Fábrica Jundiaí">
             
-            <label>Rota</label>
-            <input id="n-p1" placeholder="Ponto 1 (Obrigatório) *">
-            <input id="n-p2" placeholder="Ponto 2 (Opcional)">
+            <h3 style="margin: 20px 0 10px 0; color:var(--primary); font-size:1.2rem;">Rota e Horários</h3>
+            
+            <div style="border:1px solid #333; padding:10px; border-radius:8px; margin-bottom:15px;">
+                <label>Ponto 1 (Obrigatório) *</label>
+                <input id="n-p1" placeholder="Ex: Shopping Dom Pedro">
+                <label>Horário 1 *</label>
+                <input type="time" id="n-h1">
+            </div>
+
+            <div style="border:1px solid #333; padding:10px; border-radius:8px; margin-bottom:15px;">
+                <label>Ponto 2 (Opcional)</label>
+                <input id="n-p2" placeholder="Ex: Rodoviária">
+                <label>Horário 2</label>
+                <input type="time" id="n-h2">
+            </div>
+
+            <div style="border:1px solid #333; padding:10px; border-radius:8px; margin-bottom:15px;">
+                <label>Ponto 3 (Opcional)</label>
+                <input id="n-p3" placeholder="Ex: Posto Ipiranga">
+                <label>Horário 3</label>
+                <input type="time" id="n-h3">
+            </div>
             
             <label>Vagas Disponíveis</label>
             <select id="n-vagas">
@@ -197,7 +217,7 @@
         });
         window.logout = () => signOut(auth);
 
-        // MOTORISTA
+        // MOTORISTA UI
         window.setDir = (d) => {
             dir = d;
             document.getElementById('btn-ida').className = d==='ida'?'dir-btn active':'dir-btn';
@@ -213,20 +233,30 @@
             }
         };
 
+        // SALVAR CARONA (COM HORÁRIOS)
         window.salvarCarona = async () => {
             if(!user) return;
             const nomeMoto = document.getElementById('n-nome').value;
-            const telMoto = document.getElementById('n-tel').value; // NOVO
+            const telMoto = document.getElementById('n-tel').value;
             const dataViagem = document.getElementById('n-data').value;
             const origem = document.getElementById('n-origem').value;
             const dest = document.getElementById('n-dest').value;
+            
+            // PONTOS E HORÁRIOS
             const p1 = document.getElementById('n-p1').value;
+            const h1 = document.getElementById('n-h1').value;
+            const p2 = document.getElementById('n-p2').value;
+            const h2 = document.getElementById('n-h2').value;
+            const p3 = document.getElementById('n-p3').value;
+            const h3 = document.getElementById('n-h3').value;
+
             const vagas = parseInt(document.getElementById('n-vagas').value) || 1;
 
             if(!nomeMoto) return alert("Digite seu nome.");
-            if(!telMoto) return alert("Digite seu Telefone/WhatsApp.");
-            if(!dataViagem) return alert("A data é obrigatória.");
-            if(!p1) return alert("O Ponto 1 é obrigatório.");
+            if(!telMoto) return alert("Digite seu Telefone.");
+            if(!dataViagem) return alert("Data obrigatória.");
+            if(!p1) return alert("Ponto 1 obrigatório.");
+            if(!h1) return alert("Horário do Ponto 1 obrigatório.");
             if(dir === 'ida' && (!origem || origem.trim() === "")) return alert("Preencha a Origem.");
             if(dir === 'volta' && (!dest || dest.trim() === "")) return alert("Preencha o Destino.");
 
@@ -236,14 +266,19 @@
             try {
                 await addDoc(collection(db, "caronas"), {
                     uid: user.uid, email: user.email, 
-                    motorista: nomeMoto, tel: telMoto, // SALVA O TEL
+                    motorista: nomeMoto, tel: telMoto,
                     tipo: dir, data: dataViagem, origem: origem, dest: dest,
-                    p1: p1, p2: document.getElementById('n-p2').value,
+                    p1: p1, h1: h1,
+                    p2: p2, h2: h2,
+                    p3: p3, h3: h3,
                     vagas: vagas, pass: [], status: 'ativa', 
                     created: new Date().toISOString()
                 });
                 msg("Publicado! ✅");
-                document.getElementById('n-p1').value = ""; document.getElementById('n-p2').value = "";
+                // Limpar
+                document.getElementById('n-p1').value = ""; document.getElementById('n-h1').value = "";
+                document.getElementById('n-p2').value = ""; document.getElementById('n-h2').value = "";
+                document.getElementById('n-p3').value = ""; document.getElementById('n-h3').value = "";
                 if(dir === 'ida') document.getElementById('n-origem').value = "";
                 if(dir === 'volta') document.getElementById('n-dest').value = "";
                 nav('s-driver'); 
@@ -251,7 +286,6 @@
             finally { btn.innerText = "Publicar Carona"; btn.disabled = false; }
         };
 
-        // BUSCA
         async function buscarTudo() {
             try {
                 const snap = await getDocs(collection(db, "caronas"));
@@ -259,6 +293,16 @@
                 snap.forEach(d => { const data = d.data(); data.id = d.id; arr.push(data); });
                 return arr.sort((a,b) => b.created.localeCompare(a.created)); 
             } catch(err) { return []; }
+        }
+
+        // FUNÇÃO AUXILIAR PARA MONTAR A LISTA DE PONTOS
+        function montarRotaHTML(d) {
+            let html = '<ul class="rota-list">';
+            if(d.p1) html += `<li class="rota-item">📍 ${d.p1} <span class="rota-time">🕒 ${d.h1}</span></li>`;
+            if(d.p2) html += `<li class="rota-item">📍 ${d.p2} <span class="rota-time">🕒 ${d.h2 || '--:--'}</span></li>`;
+            if(d.p3) html += `<li class="rota-item">📍 ${d.p3} <span class="rota-time">🕒 ${d.h3 || '--:--'}</span></li>`;
+            html += '</ul>';
+            return html;
         }
 
         window.carregarDriver = async () => {
@@ -271,7 +315,6 @@
             minhas.forEach(d => {
                 const color = d.status === 'cancelada' ? 'red' : '#E1F000';
                 
-                // GERA LISTA DE PASSAGEIROS COM TEL E OBS
                 let listaPass = "";
                 if(d.pass && d.pass.length > 0) {
                     listaPass = '<div style="background:#222; padding:10px; margin-top:10px; border-radius:8px"><small>Passageiros:</small>';
@@ -289,6 +332,7 @@
                     <span class="label-trajeto">TRAJETO</span>
                     <h3 class="texto-trajeto">${d.origem} até ${d.dest}</h3>
                     <p>${fmtData(d.data)} • ${d.status.toUpperCase()}</p>
+                    ${montarRotaHTML(d)}
                     <p style="font-size:18px">Vagas: ${d.vagas} Livres</p>
                     ${listaPass}
                     ${d.status !== 'cancelada' ? `<button class="btn" style="background:#333;color:red; margin-top:10px;" onclick="openCancel('${d.id}','motorista')">Cancelar Oferta</button>` : ''}
@@ -308,8 +352,6 @@
             all.forEach(d => {
                 const souMotorista = d.uid === user.uid;
                 const souPassageiro = d.pass && d.pass.some(p => p.uid === user.uid);
-                
-                // VISUAL DO PASSAGEIRO: MOSTRA TEL DO MOTORISTA
                 const telMotorista = d.tel || 'Não informado';
 
                 if(aba === 'busca') {
@@ -325,8 +367,8 @@
                             <h3 class="texto-trajeto">${d.origem} até ${d.dest}</h3>
                             <p style="font-size:16px; margin-top:5px">Motorista: <strong>${d.motorista || 'Anônimo'}</strong></p>
                             <p>📞 ${telMotorista}</p>
-                            <p>${fmtData(d.data)} • <strong>Vagas: ${d.vagas}</strong></p>
-                            <small style="font-size:14px; color:#aaa">Passa em: ${d.p1}</small>
+                            ${montarRotaHTML(d)}
+                            <p><strong>Vagas: ${d.vagas}</strong></p>
                         </div>`;
                     }
                 } else {
@@ -339,6 +381,7 @@
                             <p>Motorista: <strong>${d.motorista || 'Anônimo'}</strong></p>
                             <p>📞 ${telMotorista}</p>
                             <p>${fmtData(d.data)} • ${isCancel?'CANCELADA':'CONFIRMADA'}</p>
+                            ${montarRotaHTML(d)}
                             ${!isCancel?`<button class="btn" style="color:red; background:#222; margin-top:5px" onclick="openCancel('${d.id}','pass')">Cancelar Vaga</button>`:''}
                         </div>`;
                     }
@@ -347,7 +390,6 @@
             if(count === 0) list.innerHTML = "<p>Nada encontrado.</p>";
         };
 
-        // AÇÕES DO MODAL
         window.openAceite = (id) => { tempId = id; document.getElementById('m-aceite').style.display = 'flex'; };
         window.openCancel = (id, type) => { tempId = id; tempAction = type; document.getElementById('m-cancel').style.display = 'flex'; };
         window.fechar = () => { document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); };
@@ -355,24 +397,17 @@
         window.confirmarAceite = async () => {
             const btn = document.getElementById('btn-conf-aceite');
             const nomePass = document.getElementById('a-nome').value;
-            const telPass = document.getElementById('a-tel').value; // NOVO
+            const telPass = document.getElementById('a-tel').value;
             const obsPass = document.getElementById('a-obs').value;
-            
             if(!nomePass) return alert("Digite seu nome.");
-            if(!telPass) return alert("Digite seu WhatsApp/Contato.");
-            
+            if(!telPass) return alert("Digite seu WhatsApp.");
             btn.innerText = "..."; btn.disabled = true;
             try {
                 await updateDoc(doc(db, "caronas", tempId), {
                     vagas: increment(-1),
-                    pass: arrayUnion({ 
-                        nome: nomePass, 
-                        tel: telPass, // SALVA TEL DO PASSAGEIRO
-                        obs: obsPass, 
-                        uid: user.uid 
-                    })
+                    pass: arrayUnion({ nome: nomePass, tel: telPass, obs: obsPass, uid: user.uid })
                 });
-                msg("Vaga Confirmada! ✅"); fechar(); verPass('busca');
+                msg("Confirmado! ✅"); fechar(); verPass('busca');
             } catch(e) { alert("Erro: "+e.message); } finally { btn.innerText = "Confirmar Vaga"; btn.disabled = false; }
         };
 
@@ -409,5 +444,6 @@
     </script>
 </body>
 </html>
+
 
 
