@@ -1,0 +1,41 @@
+name: Deploy CaronaApp
+on:
+  push:
+    branches: ["main"] # Ou "master", confira o nome da sua branch
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar Código
+        uses: actions/checkout@v4
+
+      - name: Injetar Chave Secreta
+        # Aqui ele troca o texto placeholder pelo segredo real
+        run: |
+          sed -i 's|FIREBASE_CONFIG_PLACEHOLDER|${{ secrets.FIREBASE_CONFIG }}|' index.html
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload do Site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
