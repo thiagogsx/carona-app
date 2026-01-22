@@ -1,7 +1,8 @@
 name: Deploy CaronaApp
+
 on:
   push:
-    branches: ["main"] # Verifique se sua branch é 'main' ou 'master'
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -23,12 +24,11 @@ jobs:
       - name: Baixar Código
         uses: actions/checkout@v4
 
-      - name: Injetar Chave Secreta
+      - name: Injetar Chave Secreta (Correção Perl)
         env:
-          # Carrega o segredo para uma variável de ambiente primeiro
           FIREBASE_JSON: ${{ secrets.FIREBASE_CONFIG }}
         run: |
-          # Usa PERL em vez de SED (Perl aceita quebras de linha no JSON)
+          # O comando abaixo corrige o erro de "unterminated s command"
           perl -i -pe 's|FIREBASE_CONFIG_PLACEHOLDER|$ENV{FIREBASE_JSON}|g' index.html
 
       - name: Configurar Pages
