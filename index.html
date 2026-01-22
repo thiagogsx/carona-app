@@ -13,7 +13,7 @@
         body { background: var(--bg); color: var(--text); display: flex; justify-content: center; min-height: 100vh; }
         #app { width: 100%; max-width: 480px; padding: 20px; display: flex; flex-direction: column; }
         
-        /* INPUTS */
+        /* INPUTS E FONTES GRANDES PARA CELULAR */
         input, select, textarea { 
             width: 100%; padding: 15px; background: var(--card); border: 1px solid #333; 
             color: #fff; margin-bottom: 15px; border-radius: 8px; font-size: 18px; 
@@ -37,15 +37,14 @@
         
         #notif { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: var(--primary); padding: 15px; border-radius: 30px; display: none; z-index: 999; text-align:center; border: 1px solid var(--primary); font-weight: bold; width: 90%; font-size: 16px; }
         
-        /* Modais */
+        /* MODAIS */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:none; align-items:flex-end; z-index:1000; }
         .modal-c { background:#222; width:100%; padding:25px; border-radius:20px 20px 0 0; }
         .pass-item { background: #111; padding: 12px; margin-top: 5px; border-radius: 5px; border-left: 2px solid #555; font-size: 16px; }
 
+        /* ESTILOS DE ROTA E TRAJETO */
         .label-trajeto { color: #aaa; font-size: 12px; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 4px; letter-spacing: 1px; }
         .texto-trajeto { margin: 0 0 10px 0; font-size: 20px; color: white; }
-
-        /* Estilo da Rota com Horário */
         .rota-list { list-style: none; padding: 0; margin: 10px 0; }
         .rota-item { color: #ddd; font-size: 15px; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
         .rota-time { color: var(--primary); font-weight: bold; background: #333; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
@@ -58,12 +57,16 @@
         <div class="modal-c">
             <h3>Aceitar Carona?</h3>
             <p style="color:#aaa; margin-bottom:15px; font-size:16px;">Informe seus dados de contato.</p>
+            
             <label>Seu Nome *</label>
             <input id="a-nome" placeholder="Ex: Ana Souza">
+            
             <label>Seu WhatsApp/Celular *</label>
             <input id="a-tel" type="tel" placeholder="(11) 99999-9999">
+            
             <label>Observação (Opcional)</label>
             <input id="a-obs" placeholder="Ex: Mala pequena">
+            
             <button id="btn-conf-aceite" class="btn btn-p" onclick="confirmarAceite()">Confirmar Vaga</button>
             <button class="btn" onclick="fechar()" style="background:#333; color:#fff">Cancelar</button>
         </div>
@@ -81,9 +84,15 @@
     <div id="app">
         <section id="s-login" class="screen active">
             <h1 style="text-align:center; margin:40px 0; color:var(--primary); font-size: 3rem;">CaronaApp</h1>
-            <input id="l-email" placeholder="Email"><input type="password" id="l-pass" placeholder="Senha">
-            <button id="btn-login" class="btn btn-p" onclick="login(true)">Entrar</button>
-            <button id="btn-cad" class="btn btn-o" onclick="login(false)">Criar Conta</button>
+            
+            <input id="l-email" placeholder="Usuário (Ex: ThiagoMuniz)">
+            <input type="password" id="l-pass" placeholder="Senha">
+            
+            <button id="btn-login" class="btn btn-p" onclick="login()">Entrar</button>
+            
+            <p style="text-align:center; color:#666; font-size:14px; margin-top:20px">
+                Acesso restrito. Fale com o administrador.
+            </p>
         </section>
 
         <section id="s-dash" class="screen">
@@ -128,24 +137,16 @@
             <h3 style="margin: 20px 0 10px 0; color:var(--primary); font-size:1.2rem;">Rota e Horários</h3>
             
             <div style="border:1px solid #333; padding:10px; border-radius:8px; margin-bottom:15px;">
-                <label>Ponto 1 (Obrigatório) *</label>
-                <input id="n-p1" placeholder="Ex: Shopping Dom Pedro">
-                <label>Horário 1 *</label>
-                <input type="time" id="n-h1">
+                <label>Ponto 1 (Obrigatório) *</label><input id="n-p1" placeholder="Ex: Shopping">
+                <label>Horário 1 *</label><input type="time" id="n-h1">
             </div>
-
             <div style="border:1px solid #333; padding:10px; border-radius:8px; margin-bottom:15px;">
-                <label>Ponto 2 (Opcional)</label>
-                <input id="n-p2" placeholder="Ex: Rodoviária">
-                <label>Horário 2</label>
-                <input type="time" id="n-h2">
+                <label>Ponto 2 (Opcional)</label><input id="n-p2" placeholder="Ex: Rodoviária">
+                <label>Horário 2</label><input type="time" id="n-h2">
             </div>
-
             <div style="border:1px solid #333; padding:10px; border-radius:8px; margin-bottom:15px;">
-                <label>Ponto 3 (Opcional)</label>
-                <input id="n-p3" placeholder="Ex: Posto Ipiranga">
-                <label>Horário 3</label>
-                <input type="time" id="n-h3">
+                <label>Ponto 3 (Opcional)</label><input id="n-p3" placeholder="Ex: Posto">
+                <label>Horário 3</label><input type="time" id="n-h3">
             </div>
             
             <label>Vagas Disponíveis</label>
@@ -171,9 +172,10 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, arrayUnion, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // --- CHAVES DO FIREBASE (Configuração Manual e Segura) ---
         const firebaseConfig = {
             apiKey: "AIzaSyCvszWzlqyo-s80VFOY3AVqUln8KMxJHDI",
             authDomain: "caronaapp-de78c.firebaseapp.com",
@@ -192,31 +194,54 @@
         let dir = 'ida';
         let tempId = null; let tempAction = null;
 
-        // AUTH
-        window.login = async (isLogin) => {
-            const e = document.getElementById('l-email').value;
+        // AUTH - LOGIN POR NOME (ADICIONA @carona.app AUTOMATICAMENTE)
+        window.login = async () => {
+            let userLogin = document.getElementById('l-email').value.trim();
             const p = document.getElementById('l-pass').value;
-            const btn = isLogin ? document.getElementById('btn-login') : document.getElementById('btn-cad');
-            const txt = btn.innerText;
-            if(!e || !p) return msg("Preencha email e senha");
-            btn.innerText = "..."; btn.disabled = true;
+            const btn = document.getElementById('btn-login');
+            
+            if(!userLogin || !p) return alert("Preencha usuário e senha");
+            
+            // TRUQUE: Adiciona o domínio se o usuário não digitar
+            if (!userLogin.includes('@')) {
+                userLogin = userLogin + "@carona.app";
+            }
+            
+            btn.innerText = "Entrando..."; btn.disabled = true;
+
             try {
-                if(isLogin) await signInWithEmailAndPassword(auth, e, p);
-                else await createUserWithEmailAndPassword(auth, e, p);
+                await signInWithEmailAndPassword(auth, userLogin, p);
             } catch(err) { 
-                let m = err.code; if(err.code === 'auth/invalid-credential') m = "Senha errada";
-                msg("Erro: " + m); 
-            } finally { btn.innerText = txt; btn.disabled = false; }
+                console.error(err);
+                let msg = "Erro desconhecido";
+                if(err.code.includes('invalid') || err.code.includes('not-found')) msg = "Usuário ou senha incorretos.";
+                alert(msg); 
+                btn.innerText = "Entrar"; btn.disabled = false;
+            }
         };
 
         onAuthStateChanged(auth, u => {
             user = u;
-            if(u) { document.getElementById('u-name').innerText = u.email.split('@')[0]; nav('s-dash'); }
-            else nav('s-login');
+            if(u) { 
+                // Mostra apenas o nome antes do @
+                document.getElementById('u-name').innerText = u.email.split('@')[0]; 
+                nav('s-dash'); 
+            } else {
+                nav('s-login');
+            }
         });
+
         window.logout = () => signOut(auth);
 
-        // MOTORISTA UI
+        // NAVEGAÇÃO
+        window.nav = (s) => {
+            document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
+            document.getElementById(s).classList.add('active');
+            if(s==='s-driver') carregarDriver();
+            if(s==='s-pass') verPass('busca');
+        };
+
+        // MOTORISTA: CONFIGURAR IDA/VOLTA
         window.setDir = (d) => {
             dir = d;
             document.getElementById('btn-ida').className = d==='ida'?'dir-btn active':'dir-btn';
@@ -232,7 +257,7 @@
             }
         };
 
-        // SALVAR CARONA (COM HORÁRIOS)
+        // SALVAR CARONA (COM PONTOS, HORÁRIOS E TEL)
         window.salvarCarona = async () => {
             if(!user) return;
             const nomeMoto = document.getElementById('n-nome').value;
@@ -241,18 +266,13 @@
             const origem = document.getElementById('n-origem').value;
             const dest = document.getElementById('n-dest').value;
             
-            // PONTOS E HORÁRIOS
             const p1 = document.getElementById('n-p1').value;
             const h1 = document.getElementById('n-h1').value;
-            const p2 = document.getElementById('n-p2').value;
-            const h2 = document.getElementById('n-h2').value;
-            const p3 = document.getElementById('n-p3').value;
-            const h3 = document.getElementById('n-h3').value;
-
+            
             const vagas = parseInt(document.getElementById('n-vagas').value) || 1;
 
             if(!nomeMoto) return alert("Digite seu nome.");
-            if(!telMoto) return alert("Digite seu Telefone.");
+            if(!telMoto) return alert("Digite seu Telefone/WhatsApp.");
             if(!dataViagem) return alert("Data obrigatória.");
             if(!p1) return alert("Ponto 1 obrigatório.");
             if(!h1) return alert("Horário do Ponto 1 obrigatório.");
@@ -268,13 +288,13 @@
                     motorista: nomeMoto, tel: telMoto,
                     tipo: dir, data: dataViagem, origem: origem, dest: dest,
                     p1: p1, h1: h1,
-                    p2: p2, h2: h2,
-                    p3: p3, h3: h3,
+                    p2: document.getElementById('n-p2').value, h2: document.getElementById('n-h2').value,
+                    p3: document.getElementById('n-p3').value, h3: document.getElementById('n-h3').value,
                     vagas: vagas, pass: [], status: 'ativa', 
                     created: new Date().toISOString()
                 });
                 msg("Publicado! ✅");
-                // Limpar
+                // Limpar campos
                 document.getElementById('n-p1').value = ""; document.getElementById('n-h1').value = "";
                 document.getElementById('n-p2').value = ""; document.getElementById('n-h2').value = "";
                 document.getElementById('n-p3').value = ""; document.getElementById('n-h3').value = "";
@@ -285,6 +305,7 @@
             finally { btn.innerText = "Publicar Carona"; btn.disabled = false; }
         };
 
+        // FUNÇÃO DE BUSCA GERAL
         async function buscarTudo() {
             try {
                 const snap = await getDocs(collection(db, "caronas"));
@@ -294,7 +315,7 @@
             } catch(err) { return []; }
         }
 
-        // FUNÇÃO AUXILIAR PARA MONTAR A LISTA DE PONTOS
+        // AUXILIAR: Monta a lista visual de Rota e Horários
         function montarRotaHTML(d) {
             let html = '<ul class="rota-list">';
             if(d.p1) html += `<li class="rota-item">📍 ${d.p1} <span class="rota-time">🕒 ${d.h1}</span></li>`;
@@ -304,6 +325,7 @@
             return html;
         }
 
+        // LISTA MOTORISTA (MINHAS OFERTAS)
         window.carregarDriver = async () => {
             const list = document.getElementById('list-driver');
             list.innerHTML = "Atualizando...";
@@ -339,6 +361,7 @@
             });
         };
 
+        // LISTA PASSAGEIRO (BUSCAR / MINHAS)
         window.verPass = async (aba) => {
             document.getElementById('t-busca').className = aba==='busca'?'dir-btn active':'dir-btn';
             document.getElementById('t-minhas').className = aba==='minhas'?'dir-btn active':'dir-btn';
@@ -389,6 +412,7 @@
             if(count === 0) list.innerHTML = "<p>Nada encontrado.</p>";
         };
 
+        // AÇÕES (ACEITAR / CANCELAR)
         window.openAceite = (id) => { tempId = id; document.getElementById('m-aceite').style.display = 'flex'; };
         window.openCancel = (id, type) => { tempId = id; tempAction = type; document.getElementById('m-cancel').style.display = 'flex'; };
         window.fechar = () => { document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); };
@@ -398,8 +422,10 @@
             const nomePass = document.getElementById('a-nome').value;
             const telPass = document.getElementById('a-tel').value;
             const obsPass = document.getElementById('a-obs').value;
+            
             if(!nomePass) return alert("Digite seu nome.");
             if(!telPass) return alert("Digite seu WhatsApp.");
+            
             btn.innerText = "..."; btn.disabled = true;
             try {
                 await updateDoc(doc(db, "caronas", tempId), {
@@ -432,19 +458,11 @@
         };
 
         function fmtData(d) { return d ? d.split('-').reverse().join('/') : '--/--'; }
-        window.nav = (s) => {
-            document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
-            document.getElementById(s).classList.add('active');
-            if(s==='s-driver') carregarDriver();
-            if(s==='s-pass') verPass('busca');
-        };
         const msg = (t) => { const n=document.getElementById('notif'); n.innerText=t; n.style.display='block'; setTimeout(()=>n.style.display='none',3000); };
         if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
     </script>
 </body>
 </html>
-
-
 
 
 
