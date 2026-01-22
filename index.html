@@ -174,7 +174,15 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, arrayUnion, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = FIREBASE_CONFIG_PLACEHOLDER;
+        const firebaseConfig = {
+            apiKey: "AIzaSyCvszWzlqyo-s80VFOY3AVqUln8KMxJHDI",
+            authDomain: "caronaapp-de78c.firebaseapp.com",
+            projectId: "caronaapp-de78c",
+            storageBucket: "caronaapp-de78c.firebasestorage.app",
+            messagingSenderId: "199675445210",
+            appId: "1:199675445210:web:b2cde43424ab7c46a70ae3",
+            measurementId: "G-9Q1VPNLRZE"
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -435,6 +443,7 @@
     </script>
 </body>
 </html>
+
 
 
 
