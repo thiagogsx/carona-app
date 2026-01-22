@@ -13,7 +13,7 @@
         body { background: var(--bg); color: var(--text); display: flex; justify-content: center; min-height: 100vh; }
         #app { width: 100%; max-width: 480px; padding: 20px; display: flex; flex-direction: column; }
         
-        /* INPUTS E FONTES GRANDES PARA CELULAR */
+        /* INPUTS */
         input, select, textarea { 
             width: 100%; padding: 15px; background: var(--card); border: 1px solid #333; 
             color: #fff; margin-bottom: 15px; border-radius: 8px; font-size: 18px; 
@@ -42,7 +42,6 @@
         .modal-c { background:#222; width:100%; padding:25px; border-radius:20px 20px 0 0; }
         .pass-item { background: #111; padding: 12px; margin-top: 5px; border-radius: 5px; border-left: 2px solid #555; font-size: 16px; }
 
-        /* ESTILOS DE ROTA E TRAJETO */
         .label-trajeto { color: #aaa; font-size: 12px; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 4px; letter-spacing: 1px; }
         .texto-trajeto { margin: 0 0 10px 0; font-size: 20px; color: white; }
         .rota-list { list-style: none; padding: 0; margin: 10px 0; }
@@ -57,16 +56,12 @@
         <div class="modal-c">
             <h3>Aceitar Carona?</h3>
             <p style="color:#aaa; margin-bottom:15px; font-size:16px;">Informe seus dados de contato.</p>
-            
             <label>Seu Nome *</label>
             <input id="a-nome" placeholder="Ex: Ana Souza">
-            
             <label>Seu WhatsApp/Celular *</label>
             <input id="a-tel" type="tel" placeholder="(11) 99999-9999">
-            
             <label>Observação (Opcional)</label>
             <input id="a-obs" placeholder="Ex: Mala pequena">
-            
             <button id="btn-conf-aceite" class="btn btn-p" onclick="confirmarAceite()">Confirmar Vaga</button>
             <button class="btn" onclick="fechar()" style="background:#333; color:#fff">Cancelar</button>
         </div>
@@ -90,9 +85,9 @@
             
             <button id="btn-login" class="btn btn-p" onclick="login()">Entrar</button>
             
-            <p style="text-align:center; color:#666; font-size:14px; margin-top:20px">
-                Acesso restrito. Fale com o administrador.
-            </p>
+            <a href="https://forms.office.com/e/BKT0tiTsE9" target="_blank" style="text-decoration:none">
+                <button class="btn btn-o" style="margin-top:10px">Sem acesso? Solicitar aqui</button>
+            </a>
         </section>
 
         <section id="s-dash" class="screen">
@@ -121,21 +116,16 @@
             
             <label>Seu Nome (Motorista) *</label>
             <input id="n-nome" placeholder="Ex: Thiago Alves" required>
-
             <label>Seu WhatsApp/Celular *</label>
             <input id="n-tel" type="tel" placeholder="(11) 99999-9999" required>
-
             <label>Data *</label>
             <input type="date" id="n-data" required>
-            
             <label>Origem *</label>
             <input id="n-origem" placeholder="De onde sai?">
-            
             <label>Destino *</label>
             <input id="n-dest" placeholder="Para onde vai?" disabled value="Fábrica Jundiaí">
             
             <h3 style="margin: 20px 0 10px 0; color:var(--primary); font-size:1.2rem;">Rota e Horários</h3>
-            
             <div style="border:1px solid #333; padding:10px; border-radius:8px; margin-bottom:15px;">
                 <label>Ponto 1 (Obrigatório) *</label><input id="n-p1" placeholder="Ex: Shopping">
                 <label>Horário 1 *</label><input type="time" id="n-h1">
@@ -150,13 +140,7 @@
             </div>
             
             <label>Vagas Disponíveis</label>
-            <select id="n-vagas">
-                <option value="1">1 Vaga</option>
-                <option value="2">2 Vagas</option>
-                <option value="3">3 Vagas</option>
-                <option value="4">4 Vagas</option>
-            </select>
-            
+            <select id="n-vagas"><option value="1">1 Vaga</option><option value="2">2 Vagas</option><option value="3">3 Vagas</option><option value="4">4 Vagas</option></select>
             <button id="btn-publicar" class="btn btn-p" onclick="salvarCarona()">Publicar Carona</button>
         </section>
 
@@ -175,7 +159,7 @@
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, arrayUnion, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // --- CHAVES DO FIREBASE (Configuração Manual e Segura) ---
+        // --- CHAVES DO FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyCvszWzlqyo-s80VFOY3AVqUln8KMxJHDI",
             authDomain: "caronaapp-de78c.firebaseapp.com",
@@ -194,7 +178,7 @@
         let dir = 'ida';
         let tempId = null; let tempAction = null;
 
-        // AUTH - LOGIN POR NOME (ADICIONA @carona.app AUTOMATICAMENTE)
+        // AUTH
         window.login = async () => {
             let userLogin = document.getElementById('l-email').value.trim();
             const p = document.getElementById('l-pass').value;
@@ -202,7 +186,6 @@
             
             if(!userLogin || !p) return alert("Preencha usuário e senha");
             
-            // TRUQUE: Adiciona o domínio se o usuário não digitar
             if (!userLogin.includes('@')) {
                 userLogin = userLogin + "@carona.app";
             }
@@ -222,18 +205,12 @@
 
         onAuthStateChanged(auth, u => {
             user = u;
-            if(u) { 
-                // Mostra apenas o nome antes do @
-                document.getElementById('u-name').innerText = u.email.split('@')[0]; 
-                nav('s-dash'); 
-            } else {
-                nav('s-login');
-            }
+            if(u) { document.getElementById('u-name').innerText = u.email.split('@')[0]; nav('s-dash'); }
+            else { nav('s-login'); }
         });
 
         window.logout = () => signOut(auth);
 
-        // NAVEGAÇÃO
         window.nav = (s) => {
             document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
             document.getElementById(s).classList.add('active');
@@ -241,7 +218,6 @@
             if(s==='s-pass') verPass('busca');
         };
 
-        // MOTORISTA: CONFIGURAR IDA/VOLTA
         window.setDir = (d) => {
             dir = d;
             document.getElementById('btn-ida').className = d==='ida'?'dir-btn active':'dir-btn';
@@ -257,7 +233,6 @@
             }
         };
 
-        // SALVAR CARONA (COM PONTOS, HORÁRIOS E TEL)
         window.salvarCarona = async () => {
             if(!user) return;
             const nomeMoto = document.getElementById('n-nome').value;
@@ -265,17 +240,15 @@
             const dataViagem = document.getElementById('n-data').value;
             const origem = document.getElementById('n-origem').value;
             const dest = document.getElementById('n-dest').value;
-            
             const p1 = document.getElementById('n-p1').value;
             const h1 = document.getElementById('n-h1').value;
-            
             const vagas = parseInt(document.getElementById('n-vagas').value) || 1;
 
             if(!nomeMoto) return alert("Digite seu nome.");
             if(!telMoto) return alert("Digite seu Telefone/WhatsApp.");
             if(!dataViagem) return alert("Data obrigatória.");
             if(!p1) return alert("Ponto 1 obrigatório.");
-            if(!h1) return alert("Horário do Ponto 1 obrigatório.");
+            if(!h1) return alert("Horário 1 obrigatório.");
             if(dir === 'ida' && (!origem || origem.trim() === "")) return alert("Preencha a Origem.");
             if(dir === 'volta' && (!dest || dest.trim() === "")) return alert("Preencha o Destino.");
 
@@ -294,7 +267,6 @@
                     created: new Date().toISOString()
                 });
                 msg("Publicado! ✅");
-                // Limpar campos
                 document.getElementById('n-p1').value = ""; document.getElementById('n-h1').value = "";
                 document.getElementById('n-p2').value = ""; document.getElementById('n-h2').value = "";
                 document.getElementById('n-p3').value = ""; document.getElementById('n-h3').value = "";
@@ -305,7 +277,6 @@
             finally { btn.innerText = "Publicar Carona"; btn.disabled = false; }
         };
 
-        // FUNÇÃO DE BUSCA GERAL
         async function buscarTudo() {
             try {
                 const snap = await getDocs(collection(db, "caronas"));
@@ -315,7 +286,6 @@
             } catch(err) { return []; }
         }
 
-        // AUXILIAR: Monta a lista visual de Rota e Horários
         function montarRotaHTML(d) {
             let html = '<ul class="rota-list">';
             if(d.p1) html += `<li class="rota-item">📍 ${d.p1} <span class="rota-time">🕒 ${d.h1}</span></li>`;
@@ -325,7 +295,6 @@
             return html;
         }
 
-        // LISTA MOTORISTA (MINHAS OFERTAS)
         window.carregarDriver = async () => {
             const list = document.getElementById('list-driver');
             list.innerHTML = "Atualizando...";
@@ -335,7 +304,6 @@
             if(minhas.length === 0) { list.innerHTML = "<p>Nenhuma oferta.</p>"; return; }
             minhas.forEach(d => {
                 const color = d.status === 'cancelada' ? 'red' : '#E1F000';
-                
                 let listaPass = "";
                 if(d.pass && d.pass.length > 0) {
                     listaPass = '<div style="background:#222; padding:10px; margin-top:10px; border-radius:8px"><small>Passageiros:</small>';
@@ -348,7 +316,6 @@
                     });
                     listaPass += '</div>';
                 }
-
                 list.innerHTML += `<div class="card" style="border-left-color:${color}">
                     <span class="label-trajeto">TRAJETO</span>
                     <h3 class="texto-trajeto">${d.origem} até ${d.dest}</h3>
@@ -361,7 +328,6 @@
             });
         };
 
-        // LISTA PASSAGEIRO (BUSCAR / MINHAS)
         window.verPass = async (aba) => {
             document.getElementById('t-busca').className = aba==='busca'?'dir-btn active':'dir-btn';
             document.getElementById('t-minhas').className = aba==='minhas'?'dir-btn active':'dir-btn';
@@ -370,12 +336,10 @@
             const all = await buscarTudo();
             list.innerHTML = "";
             let count = 0;
-
             all.forEach(d => {
                 const souMotorista = d.uid === user.uid;
                 const souPassageiro = d.pass && d.pass.some(p => p.uid === user.uid);
                 const telMotorista = d.tel || 'Não informado';
-
                 if(aba === 'busca') {
                     if(!souMotorista && d.vagas > 0 && d.status !== 'cancelada' && !souPassageiro) {
                         count++;
@@ -412,7 +376,6 @@
             if(count === 0) list.innerHTML = "<p>Nada encontrado.</p>";
         };
 
-        // AÇÕES (ACEITAR / CANCELAR)
         window.openAceite = (id) => { tempId = id; document.getElementById('m-aceite').style.display = 'flex'; };
         window.openCancel = (id, type) => { tempId = id; tempAction = type; document.getElementById('m-cancel').style.display = 'flex'; };
         window.fechar = () => { document.querySelectorAll('.modal').forEach(m=>m.style.display='none'); };
@@ -422,10 +385,8 @@
             const nomePass = document.getElementById('a-nome').value;
             const telPass = document.getElementById('a-tel').value;
             const obsPass = document.getElementById('a-obs').value;
-            
             if(!nomePass) return alert("Digite seu nome.");
             if(!telPass) return alert("Digite seu WhatsApp.");
-            
             btn.innerText = "..."; btn.disabled = true;
             try {
                 await updateDoc(doc(db, "caronas", tempId), {
@@ -463,6 +424,3 @@
     </script>
 </body>
 </html>
-
-
-
