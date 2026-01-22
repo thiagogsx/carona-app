@@ -1,7 +1,7 @@
 name: Deploy CaronaApp
 on:
   push:
-    branches: ["main"] # Ou "master", confira o nome da sua branch
+    branches: ["main"] # Verifique se sua branch é 'main' ou 'master'
   workflow_dispatch:
 
 permissions:
@@ -24,9 +24,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Injetar Chave Secreta
-        # Aqui ele troca o texto placeholder pelo segredo real
+        env:
+          # Carrega o segredo para uma variável de ambiente primeiro
+          FIREBASE_JSON: ${{ secrets.FIREBASE_CONFIG }}
         run: |
-          sed -i 's|FIREBASE_CONFIG_PLACEHOLDER|${{ secrets.FIREBASE_CONFIG }}|' index.html
+          # Usa PERL em vez de SED (Perl aceita quebras de linha no JSON)
+          perl -i -pe 's|FIREBASE_CONFIG_PLACEHOLDER|$ENV{FIREBASE_JSON}|g' index.html
 
       - name: Configurar Pages
         uses: actions/configure-pages@v4
